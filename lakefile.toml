@@ -1,0 +1,6 @@
+name = "StackCalc"
+version = "0.1.0"
+defaultTargets = ["StackCalc"]
+
+[[lean_lib]]
+name = "StackCalc"
