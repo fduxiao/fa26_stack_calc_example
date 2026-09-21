@@ -5,3 +5,4 @@ import StackCalc.Map
 import StackCalc.Expr
 import StackCalc.Optim
 import StackCalc.Spec
+import StackCalc.Machine
