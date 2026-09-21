@@ -4,3 +4,4 @@ import StackCalc.Syntax
 import StackCalc.Map
 import StackCalc.Expr
 import StackCalc.Optim
+import StackCalc.Spec
