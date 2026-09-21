@@ -6,19 +6,19 @@ import StackCalc.Map
 Recall the definition of `Expr`.
 ```lean
 inductive Expr : Type where
-  | const : UInt8 → Expr
+  | const : Nat → Expr
   | var : String → Expr
   | add : Expr → Expr → Expr
   | sub : Expr → Expr → Expr
   | mul : Expr → Expr → Expr
   | div : Expr → Expr → Expr
 ```
-It is evaluated under a `Map`, which is just a function from `String → UInt8`.
+It is evaluated under a `Map`, which is just a function from `String → Nat`.
 -/
 
 
 @[simp]
-def Expr.eval (e: Expr) (m: Map): UInt8 :=
+def Expr.eval (e: Expr) (m: Map): Nat :=
   match e with
   | Expr.const n => n
   | Expr.var x => m x
@@ -32,7 +32,7 @@ def Expr.eval (e: Expr) (m: Map): UInt8 :=
 ## Necessary simplifications
 -/
 @[simp]
-theorem Expr.eval_const {m} {n: UInt8}: (Expr.const n).eval m = n := rfl
+theorem Expr.eval_const {m} {n: Nat}: (Expr.const n).eval m = n := rfl
 
 @[simp]
 theorem Expr.eval_var {m} {x: String}: (Expr.var x).eval m = m x := rfl

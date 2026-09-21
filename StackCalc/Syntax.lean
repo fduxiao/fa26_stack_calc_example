@@ -2,7 +2,7 @@ import Lean
 
 
 inductive Expr : Type where
-  | const : UInt8 → Expr
+  | const : Nat → Expr
   | var : String → Expr
   | add : Expr → Expr → Expr
   | sub : Expr → Expr → Expr
@@ -12,11 +12,7 @@ inductive Expr : Type where
 
 
 instance: Coe Nat Expr where
-  coe n := Expr.const (UInt8.ofNat n)
-
-
-instance: Coe UInt8 Expr where
-  coe := Expr.const
+  coe n := Expr.const n
 
 
 instance: Coe String Expr where
@@ -24,7 +20,7 @@ instance: Coe String Expr where
 
 
 instance {n}: OfNat Expr n where
-  ofNat := Expr.const (UInt8.ofNat n)
+  ofNat := Expr.const n
 
 
 instance : Add Expr where
@@ -44,26 +40,6 @@ instance : Div Expr where
 
 
 /-!
-Pretty print of Uint8
--/
-declare_syntax_cat uint8 (behavior := symbol)
-syntax term : uint8
-syntax "[uint8| " uint8 " ]" : term
-macro_rules
-  | `([uint8| $n:num]) => `((($n): UInt8))
-
-example:
-  [uint8| 1] = (UInt8.ofNat 1)
-:= by rfl
-
-
-@[app_unexpander UInt8.ofNat]
-def unexpandUint8: Lean.PrettyPrinter.Unexpander
-  | `($_ $x ) => `([uint8| $x:term ])
-  | _ => throw ()
-
-
-/-!
 ## Pretty printing of the language
 -/
 
@@ -74,8 +50,6 @@ open Lean Elab Command Term PrettyPrinter Delaborator
 @[app_unexpander Expr.const]
 def unexpandConst: Unexpander
   | `($_ $x:num ) => `($x:num)
-  | `($_ [uint8| $t:num ]) => `($t:num)
-  | `($_ [uint8| $t:term ]) => `($t:term)
   | `($_ $x) => `($x)
   | _ => throw ()
 
