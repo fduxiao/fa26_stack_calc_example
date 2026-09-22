@@ -14,37 +14,37 @@ inductive Instruction : Type where
   deriving Repr, DecidableEq, Inhabited
 
 
-def execute (prog: List Instruction) (m: Map) (s: List Nat): (List Nat) :=
+def execute (prog: List Instruction) (state: Map) (stack: List Nat): (List Nat) :=
   match prog with
-  | [] => s
+  | [] => stack
   | p :: ps =>
     match p with
-    | Instruction.push n => execute ps m (n :: s)
-    | Instruction.load x => execute ps m (m x :: s)
+    | Instruction.push n => execute ps state (n :: stack)
+    | Instruction.load x => execute ps state (state x :: stack)
     | Instruction.add =>
-      match s with
-      | n1 :: n2 :: s' => execute ps m ((n1 + n2) :: s')
-      | [_] | [] => execute ps m []
+      match stack with
+      | n1 :: n2 :: s => execute ps state ((n1 + n2) :: s)
+      | [_] | [] => execute ps state []
     | Instruction.sub =>
-      match s with
-      | n1 :: n2 :: s' => execute ps m ((n1 - n2) :: s')
-      | [_] | [] => execute ps m []
+      match stack with
+      | n1 :: n2 :: s => execute ps state ((n1 - n2) :: s)
+      | [_] | [] => execute ps state []
     | Instruction.mul =>
-      match s with
-      | n1 :: n2 :: s' => execute ps m ((n1 * n2) :: s')
-      | [_] | [] => execute ps m []
+      match stack with
+      | n1 :: n2 :: s => execute ps state ((n1 * n2) :: s)
+      | [_] | [] => execute ps state []
     | Instruction.div =>
-      match s with
-      | n1 :: n2 :: s' => execute ps m ((n1 / n2) :: s')
-      | [_] | [] => execute ps m []
+      match stack with
+      | n1 :: n2 :: s => execute ps state ((n1 / n2) :: s)
+      | [_] | [] => execute ps state []
     | Instruction.lshift k =>
-      match s with
-      | n1 :: s' => execute ps m ((n1 <<< k) :: s')
-      | [] => execute ps m []
+      match stack with
+      | n1 :: s => execute ps state ((n1 <<< k) :: s)
+      | [] => execute ps state []
     | Instruction.rshift k =>
-      match s with
-      | n1 :: s' => execute ps m ((n1 >>> k) :: s')
-      | [] => execute ps m []
+      match stack with
+      | n1 :: s => execute ps state ((n1 >>> k) :: s)
+      | [] => execute ps state []
 
 /-!
 Examples of executing instructions.
@@ -92,8 +92,9 @@ example:
   rfl
 
 
-theorem execute_app {p1 p2 m stack}:
-  execute (p1 ++ p2) m stack  = execute p2 m (execute p1 m stack )
+
+theorem execute_app {p1 p2 state stack}:
+  execute (p1 ++ p2) state stack  = execute p2 state (execute p1 state stack )
 := by
   induction p1 generalizing stack
   case nil =>
@@ -116,8 +117,8 @@ theorem execute_app {p1 p2 m stack}:
       split <;> grind
 
 
-theorem compile_correct_aux {e m stack}:
-  execute (compile e) m stack = e.eval m :: stack
+theorem compile_correct_aux {e state stack}:
+  execute (compile e) state stack = e.eval state :: stack
 := by
   induction e generalizing stack
   case const n =>
@@ -135,7 +136,7 @@ theorem compile_correct_aux {e m stack}:
     grind[execute_app, execute]
 
 
-theorem compile_correct {e m}:
-  execute (compile e) m [] = [e.eval m]
+theorem compile_correct {e state}:
+  execute (compile e) state [] = [e.eval state]
 := by
   apply compile_correct_aux
