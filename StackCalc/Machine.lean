@@ -140,3 +140,121 @@ theorem compile_correct {e state}:
   execute (compile e) state [] = [e.eval state]
 := by
   apply compile_correct_aux
+
+
+def const_mul (n: Nat) (prog: List Instruction): List Instruction :=
+  if n == 0 then [.push 0]
+  else if n % 2 == 0 then
+    const_mul (n / 2) (prog ++ [Instruction.lshift 1])
+  else
+    const_mul (n - 1) prog ++ prog ++ [Instruction.add]
+  termination_by n
+  decreasing_by
+    . grind
+    . grind
+
+
+example x: const_mul 12 [Instruction.push x] = [
+  .push 0,
+  Instruction.push x,
+  Instruction.lshift 1,
+  Instruction.lshift 1,
+  Instruction.lshift 1,
+  Instruction.add,
+  Instruction.push x,
+  Instruction.lshift 1,
+  Instruction.lshift 1,
+  Instruction.add
+]
+:= by
+  unfold const_mul; simp
+  unfold const_mul; simp
+  unfold const_mul; simp
+  unfold const_mul; simp
+  unfold const_mul; simp
+  unfold const_mul; simp
+
+
+example x: execute (const_mul 12 [Instruction.push x]) ∅ [] = [x * 12] := by
+  simp [const_mul, execute]
+  simp [Nat.shiftLeft_eq]
+  omega
+
+
+theorem app_lshift1 {r state prog stack}:
+  execute prog state stack = r :: stack →
+  execute (prog ++ [Instruction.lshift 1]) state stack = (r * 2) :: stack
+:= by
+  intro h
+  simp [execute_app]
+  rw [h]
+  simp [execute]
+  apply Nat.shiftLeft_eq
+
+
+theorem const_mul_correct {n r state prog}:
+  (∀ {stack}, execute prog state stack = r :: stack) →
+  ∀ {stack}, execute (const_mul n prog) state stack = n * r :: stack
+:= by
+  intro h stack
+  induction n using Nat.strongRecOn generalizing r prog stack
+  case ind n ih =>
+    unfold const_mul
+    split
+    . simp [execute]
+      simp_all
+    . split
+      . simp_all
+        specialize ih (n/2) (by grind)
+          (prog := prog ++ [Instruction.lshift 1])
+          (r := r * 2)
+          (app_lshift1 h) (stack := stack)
+        simp_all
+        calc n / 2 * (r * 2)
+          _ = n / 2 * (2 * r) := by grind
+          _ = (n / 2 * 2) * r := by grind
+        congr
+        apply Nat.div_mul_cancel
+        grind
+      . have k := @ih (n - 1) (by grind) _ _ h
+        simp [execute_app]
+        simp [k, h]
+        simp [execute]
+        calc r + (n - 1) * r
+          _ = 1 * r + (n - 1) * r := by grind
+          _ = (n - 1 + 1) * r := by grind
+        congr
+        grind
+
+
+def compile_optim_mult: Expr -> List Instruction
+  | .const n => [Instruction.push n]
+  | .var x => [Instruction.load x]
+  | .add e1 e2 => compile_optim_mult e2 ++ compile_optim_mult e1 ++ [Instruction.add]
+  | .sub e1 e2 => compile_optim_mult e2 ++ compile_optim_mult e1 ++ [Instruction.sub]
+  | .mul (Expr.const n) e2 => const_mul n (compile_optim_mult e2)
+  | .mul e1 (Expr.const n) => const_mul n (compile_optim_mult e1)
+  | .mul e1 e2 => compile_optim_mult e2 ++ compile_optim_mult e1 ++ [Instruction.mul]
+  | .div e1 e2 => compile_optim_mult e2 ++ compile_optim_mult e1 ++ [Instruction.div]
+
+
+theorem compile_optim_mult_correct {e m stack}:
+  execute (compile_optim_mult e) m stack = e.eval m :: stack
+:= by
+  induction e generalizing stack
+  case const n =>
+    simp [compile_optim_mult, execute]
+  case var x =>
+    simp [compile_optim_mult, execute]
+  case mul e1 e2 ih1 ih2 =>
+    unfold compile_optim_mult
+    split <;> simp_all
+    . rewrite [const_mul_correct ih2]
+      rfl
+    . rewrite [const_mul_correct ih1]
+      simp
+      apply Nat.mul_comm
+    . grind[execute_app, execute, const_mul_correct]
+  all_goals
+    simp [compile_optim_mult]
+    grind[execute_app, execute, const_mul_correct]
