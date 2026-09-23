@@ -142,6 +142,75 @@ theorem compile_correct {e state}:
   apply compile_correct_aux
 
 
+def compile_optim_mult_2: Expr -> List Instruction
+  | .const n => [Instruction.push n]
+  | .var x => [Instruction.load x]
+  | .add e1 e2 => compile_optim_mult_2 e2 ++ compile_optim_mult_2 e1 ++ [Instruction.add]
+  | .sub e1 e2 => compile_optim_mult_2 e2 ++ compile_optim_mult_2 e1 ++ [Instruction.sub]
+  | .mul (Expr.const 2) e2 => compile_optim_mult_2 e2 ++ [Instruction.lshift 1]
+  | .mul e1 e2 => compile_optim_mult_2 e2 ++ compile_optim_mult_2 e1 ++ [Instruction.mul]
+  | .div e1 e2 => compile_optim_mult_2 e2 ++ compile_optim_mult_2 e1 ++ [Instruction.div]
+
+
+theorem app_lshift {r state prog stack n}:
+  execute prog state stack = r :: stack →
+  execute (prog ++ [Instruction.lshift n]) state stack = (r * 2^n) :: stack
+:= by
+  intro h
+  simp [execute_app]
+  rw [h]
+  simp [execute]
+  apply Nat.shiftLeft_eq
+
+
+theorem compile_optim_mult_2_correct {e m stack}:
+  execute (compile_optim_mult_2 e) m stack = e.eval m :: stack
+:= by
+  induction e generalizing stack
+  case const n =>
+    simp [compile_optim_mult_2, execute]
+  case var x =>
+    simp [compile_optim_mult_2, execute]
+  case mul e1 e2 ih1 ih2 =>
+    unfold compile_optim_mult_2
+    split <;> simp_all <;> try grind [execute_app, execute]
+    rw [app_lshift ih2]
+    grind
+  all_goals
+    simp [compile_optim_mult_2]
+    grind[execute_app, execute]
+
+
+def compile_optim_mult_4: Expr -> List Instruction
+  | .const n => [Instruction.push n]
+  | .var x => [Instruction.load x]
+  | .add e1 e2 => compile_optim_mult_4 e2 ++ compile_optim_mult_4 e1 ++ [Instruction.add]
+  | .sub e1 e2 => compile_optim_mult_4 e2 ++ compile_optim_mult_4 e1 ++ [Instruction.sub]
+  | .mul (Expr.const 2) e2 => compile_optim_mult_4 e2 ++ [Instruction.lshift 1]
+  | .mul (Expr.const 4) e2 => compile_optim_mult_4 e2 ++ [Instruction.lshift 2]
+  | .mul e1 e2 => compile_optim_mult_4 e2 ++ compile_optim_mult_4 e1 ++ [Instruction.mul]
+  | .div e1 e2 => compile_optim_mult_4 e2 ++ compile_optim_mult_4 e1 ++ [Instruction.div]
+
+
+theorem compile_optim_mult_4_correct {e m stack}:
+  execute (compile_optim_mult_4 e) m stack = e.eval m :: stack
+:= by
+  induction e generalizing stack
+  case const n =>
+    simp [compile_optim_mult_4, execute]
+  case var x =>
+    simp [compile_optim_mult_4, execute]
+  case mul e1 e2 ih1 ih2 =>
+    unfold compile_optim_mult_4
+    split <;>
+      simp_all <;>
+      grind [execute_app, execute, app_lshift ih2]
+  all_goals
+    simp [compile_optim_mult_4]
+    grind[execute_app, execute]
+
+
+
 def const_mul (n: Nat) (prog: List Instruction): List Instruction :=
   if n == 0 then [.push 0]
   else if n % 2 == 0 then
@@ -181,17 +250,6 @@ example x: execute (const_mul 12 [Instruction.push x]) ∅ [] = [x * 12] := by
   omega
 
 
-theorem app_lshift1 {r state prog stack}:
-  execute prog state stack = r :: stack →
-  execute (prog ++ [Instruction.lshift 1]) state stack = (r * 2) :: stack
-:= by
-  intro h
-  simp [execute_app]
-  rw [h]
-  simp [execute]
-  apply Nat.shiftLeft_eq
-
-
 theorem const_mul_correct {n r state prog}:
   (∀ {stack}, execute prog state stack = r :: stack) →
   ∀ {stack}, execute (const_mul n prog) state stack = n * r :: stack
@@ -208,7 +266,7 @@ theorem const_mul_correct {n r state prog}:
         specialize ih (n/2) (by grind)
           (prog := prog ++ [Instruction.lshift 1])
           (r := r * 2)
-          (app_lshift1 h) (stack := stack)
+          (app_lshift h) (stack := stack)
         simp_all
         calc n / 2 * (r * 2)
           _ = n / 2 * (2 * r) := by grind
