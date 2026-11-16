@@ -49,16 +49,16 @@ instance: EmptyCollection Map where
   emptyCollection := Map.empty
 
 
-syntax term "[" (term " ↦ " term),+ "]" : term
+syntax term "![" (term " ↦ " term),+ "]" : term
 macro_rules
-  | `($m[$x ↦ $n]) => `(Map.update $m $x $n)
-  | `($m[$x ↦ $n , $[ $xs ↦ $ns ],* ]) => `($m[$x ↦ $n][$[ $xs ↦ $ns ],* ])
+  | `($m ![$x ↦ $n]) => `(Map.update $m $x $n)
+  | `($m ![$x ↦ $n , $[ $xs ↦ $ns ],* ]) => `($m ![$x ↦ $n]![$[ $xs ↦ $ns ],* ])
 
 
 @[app_unexpander Map.update]
 def unexpandMapUpdate: Lean.PrettyPrinter.Unexpander
   | `($_ $m $x $n) =>
     match m with
-    | `($m[ $[$xs ↦ $ns],* ]) => `($m[$[$xs ↦ $ns],*, $x ↦ $n])
-    | _ => `($m[$x ↦ $n])
+    | `($m ![ $[$xs ↦ $ns],* ]) => `($m ![$[$xs ↦ $ns],*, $x ↦ $n])
+    | _ => `($m ![$x ↦ $n])
   | _ => throw ()

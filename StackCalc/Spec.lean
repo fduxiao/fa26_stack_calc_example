@@ -7,23 +7,37 @@ it is larger than or equal to two and is monotone in `x` and `y`.
 
 namespace StackCalc.SpecExample
 
-def expr_spec (e: Expr): Prop :=
-  (∀ m: Map, e.eval m ≥ 2)
-  ∧
-  (∀ m1 m2: Map, m1 "x" ≤ m2 "x" → m1 "y" ≤ m2 "y" → e.eval m1 ≤ e.eval m2)
+def e1: Expr := "x" * "y" + 1
+def e2: Expr := "x" * "x" + "y" * "y" + 3
 
+def montone_in_xy (e: Expr): Prop :=
+  ∀ m1 m2: Map,
+    m1 "x" ≤ m2 "x" →
+    m1 "y" ≤ m2 "y" →
+    e.eval m1 ≤ e.eval m2
 
-def e: Expr := "x" * "y" + 2
+def larger_than_or_equal_to_two (e: Expr): Prop :=
+  ∀ m: Map, e.eval m ≥ 2
 
+theorem e1_monotone_in_xy: montone_in_xy e1 := by
+  intro m1 m2 H1 H2
+  unfold e1
+  simp [Expr.eval]
+  apply Nat.mul_le_mul
+  . exact H1
+  . exact H2
 
-theorem e_spec: expr_spec e := by
-  unfold expr_spec
-  and_intros <;> unfold e
-  . intro m
-    simp only [Expr.eval]
-    omega
-  . intro m1 m2 h1 h2
-    simp_all
-    apply Nat.mul_le_mul
-    . exact h1
-    . omega
+theorem e2_larger_than_or_equal_to_two: larger_than_or_equal_to_two e2 := by
+  intro m
+  unfold e2
+  simp only [Expr.eval]
+  lia
+
+theorem e1_not_larger_than_or_equal_to_two: ¬ larger_than_or_equal_to_two e1 := by
+  intro H
+  let m: Map := ∅![ "x" ↦ 0, "y" ↦ 0]
+  specialize H m
+  unfold e1 at H
+  simp only [Expr.eval] at H
+  simp [m, Map.update, -ge_iff_le, -Nat.mul_zero, -Nat.zero_mul, -Nat.reduceMul] at H
+  contradiction

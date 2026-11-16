@@ -63,7 +63,7 @@ example:
 
 
 example:
-  execute [Instruction.load "x", Instruction.push 2, Instruction.add] (∅["x" ↦ 1]) []
+  execute [Instruction.load "x", Instruction.push 2, Instruction.add] (∅!["x" ↦ 1]) []
   =
   [3]
 := by
