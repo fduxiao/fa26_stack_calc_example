@@ -1,3 +1,4 @@
+import StackCalc.Motivation
 import StackCalc.Expr
 /-!
 ## Specification of an `Expr`
@@ -41,3 +42,28 @@ theorem e1_not_larger_than_or_equal_to_two: ¬ larger_than_or_equal_to_two e1 :=
   simp only [Expr.eval] at H
   simp [m, Map.update, -ge_iff_le, -Nat.mul_zero, -Nat.zero_mul, -Nat.reduceMul] at H
   contradiction
+
+
+open Motivation
+
+theorem e1_eq_f1: ∀ m: Map, e1.eval m = f1 (m "x") (m "y") := by
+  intro m
+  unfold e1 f1
+  simp [Expr.eval]
+
+theorem e2_eq_f2: ∀ m: Map, e2.eval m = f2 (m "x") (m "y") := by
+  intro m
+  unfold e2 f2
+  simp [Expr.eval]
+
+theorem e1_monotone_in_xy': montone_in_xy e1 := by
+  intro m1 m2 H1 H2
+  rw [e1_eq_f1]
+  apply f1_monotone_in_xy
+  . exact H1
+  . exact H2
+
+theorem e2_larger_than_or_equal_to_two': larger_than_or_equal_to_two e2 := by
+  intro m
+  rw [e2_eq_f2]
+  apply f2_larger_than_or_equal_to_two
