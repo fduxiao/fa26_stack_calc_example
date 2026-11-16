@@ -1,7 +1,7 @@
 import StackCalc.Expr
 
 
-class Optim (optim: Expr -> Expr) where
+class Optim (optim: Expr → Expr) where
   equiv: forall e: Expr, e ≡ optim e
 
 
@@ -44,17 +44,17 @@ instance: Optim fold0 where
         specialize ih1 m
         specialize ih2 m
         simp_all
-      . equiv_simp_all
-      . equiv_simp_all
+      . expr_equiv
+      . expr_equiv
     case sub e1 e2 ih1 ih2 =>
       simp [fold0]
-      split <;> equiv_simp_all
+      split <;> expr_equiv
     case mul e1 e2 ih1 ih2 =>
       simp [fold0]
-      split <;> equiv_simp_all
+      split <;> expr_equiv
     case div e1 e2 ih1 ih2 =>
       simp [fold0]
-      split <;> equiv_simp_all
+      split <;> expr_equiv
 
 
 theorem fold0_idempotent: forall e: Expr, fold0 (fold0 e) = fold0 e := by

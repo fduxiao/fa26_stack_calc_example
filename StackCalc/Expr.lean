@@ -16,6 +16,25 @@ inductive Expr : Type where
 It is evaluated under a `Map`, which is just a function from `String → Nat`.
 -/
 
+namespace ExprExamples
+
+example: 3 = Expr.const 3 := rfl
+example (n: Nat):
+  (n + "x": Expr) = Expr.add (Expr.const n) (Expr.var "x")
+:= rfl
+
+example (x: String):
+  ("x" + x * (5 + "y") + 3) =
+  Expr.add
+    (Expr.add (Expr.var "x")
+      (Expr.mul
+        (Expr.var x)
+        (Expr.add (Expr.const 5) (Expr.var "y"))))
+    (Expr.const 3)
+:= rfl
+
+end ExprExamples
+
 
 @[simp]
 def Expr.eval (e: Expr) (m: Map): Nat :=
@@ -27,6 +46,13 @@ def Expr.eval (e: Expr) (m: Map): Nat :=
   | Expr.mul e1 e2 => e1.eval m * e2.eval m
   | Expr.div e1 e2 => e1.eval m / e2.eval m
 
+example:
+  let m: Map := ∅ !["x" ↦ 0, "y" ↦ 1]
+  Expr.eval ("x" + 5 * ("y" + 3)  + 1) m = 21
+:= by
+  intro m
+  simp
+  rfl
 
 /-!
 ## Necessary simplifications
@@ -166,45 +192,11 @@ theorem Expr.equiv.add2 {e1 e2 e2': Expr}:
 ## Arithmetic laws
 -/
 
-
-
-macro "equiv_intro" x:term : tactic => `(tactic| (intro $x:term <;> simp_all [Expr.eval] <;> grind))
-macro "equiv_intro" : tactic => `(tactic| equiv_intro _)
-
-theorem Expr.equiv_add_comm {e1 e2: Expr}:
-  e1 + e2 ≡ e2 + e1
-:= by
-  equiv_intro
-
-
-theorem Expr.equiv_add_assoc {e1 e2 e3: Expr}:
-  e1 + (e2 + e3) ≡ (e1 + e2) + e3
-:= by
-  equiv_intro
-
-
-theorem Expr.equiv_mul_comm {e1 e2: Expr}:
-  e1 * e2 ≡ e2 * e1
-:= by
-  equiv_intro
-
-
-theorem Expr.equiv_mul_assoc {e1 e2 e3: Expr}:
-  e1 * (e2 * e3) ≡ (e1 * e2) * e3
-:= by
-  equiv_intro
-
-
-theorem Expr.equiv_mul_add_distr {e1 e2 e3: Expr}:
-  e1 * (e2 + e3) ≡ e1 * e2 + e1 * e3
-:= by
-  equiv_intro
-
-
 section
 open Lean Elab Tactic Meta
 
-elab "equiv_simp_all" : tactic => withMainContext do
+elab "expr_equiv" : tactic => withMainContext do
+    Tactic.evalTactic (← `(tactic| intros))
     let goal ← getMainTarget
     if ! goal.isAppOf `Expr.equiv then
       throwError "Goals must be of the form `e1 ≡ e2`"
@@ -220,15 +212,43 @@ elab "equiv_simp_all" : tactic => withMainContext do
 
     -- grind
     Tactic.evalTactic (← `(tactic| (
-      simp_all [Expr.eval] <;>
+      try (simp_all [Expr.eval]) <;>
       first | grind [Expr.eval, Expr.equiv, Expr.equiv.refl, Expr.equiv.symm] | trivial
     )))
 end
+
+theorem Expr.equiv_add_comm {e1 e2: Expr}:
+  e1 + e2 ≡ e2 + e1
+:= by
+  expr_equiv
+
+
+theorem Expr.equiv_add_assoc {e1 e2 e3: Expr}:
+  e1 + (e2 + e3) ≡ (e1 + e2) + e3
+:= by
+  expr_equiv
+
+
+theorem Expr.equiv_mul_comm {e1 e2: Expr}:
+  e1 * e2 ≡ e2 * e1
+:= by
+  expr_equiv
+
+
+theorem Expr.equiv_mul_assoc {e1 e2 e3: Expr}:
+  e1 * (e2 * e3) ≡ (e1 * e2) * e3
+:= by
+  expr_equiv
+
+
+theorem Expr.equiv_mul_add_distr {e1 e2 e3: Expr}:
+  e1 * (e2 + e3) ≡ e1 * e2 + e1 * e3
+:= by
+  expr_equiv
 
 
 theorem Expr.equiv.add1' {e1 e1' e2: Expr}:
   e1 ≡ e1' →
   e1 + e2 ≡ e1' + e2
 := by
-  intro
-  equiv_simp_all
+  expr_equiv

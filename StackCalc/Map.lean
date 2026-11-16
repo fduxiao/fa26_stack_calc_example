@@ -1,3 +1,9 @@
+/--
+`Map` is just a function `String → Nat` with the following operations:
+- empty map: `∅`
+- update: `m ![x ↦ n]`
+- lookup: `m x`
+-/
 def Map := String → Nat
 
 
@@ -13,7 +19,7 @@ theorem Map.update_eq (m: Map) (x: String) (n: Nat):
 := by
   simp [Map.update]
 
-
+@[simp]
 theorem Map.update_neq (m: Map) (x y: String) (n: Nat):
   x ≠ y → (m.update x n) y = m y
 := by

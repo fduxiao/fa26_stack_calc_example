@@ -10,6 +10,9 @@ inductive Expr : Type where
   | div : Expr → Expr → Expr
   deriving Repr, DecidableEq, Inhabited
 
+/-!
+The rest are just metaprogramming utilities for a human-friendly syntax and pretty printing of `Expr`
+-/
 
 instance: Coe Nat Expr where
   coe n := Expr.const n
