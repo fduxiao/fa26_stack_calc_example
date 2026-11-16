@@ -208,9 +208,11 @@ theorem compile_optim_mult_2_correct {e m stack}:
     simp [compile_optim_mult_2, execute]
   case mul e1 e2 ih1 ih2 =>
     unfold compile_optim_mult_2
-    split <;> simp_all <;> try grind [execute_app, execute]
-    rw [app_lshift ih2]
-    grind
+    split <;> simp_all <;> try grind
+    . rw [app_lshift ih2]
+      simp
+      lia
+    . grind [execute_app, execute]
   all_goals
     simp [compile_optim_mult_2]
     grind[execute_app, execute]
