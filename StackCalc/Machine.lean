@@ -1,3 +1,4 @@
+import StackCalc.MyTactics
 import StackCalc.Map
 import StackCalc.Expr
 
@@ -91,6 +92,24 @@ example:
 := by
   rfl
 
+trial compile_correct {e state}:
+  execute (compile e) state [] = [e.eval state]
+:= by
+  induction e
+  case const n =>
+    simp [compile]
+    unfold execute; simp
+    unfold execute;
+    simp
+  case var x =>
+    simp [compile]
+    unfold execute; simp
+    unfold execute
+    simp
+  case add e1 e2 ih1 ih2 =>
+    simp [compile]
+    sorry
+  all_goals sorry
 
 
 theorem execute_app {p1 p2 state stack}:
@@ -100,22 +119,35 @@ theorem execute_app {p1 p2 state stack}:
   case nil =>
     simp [execute]
   case cons p ps ih =>
-    simp [execute]
+    -- simp [execute]
     cases p
     case push n =>
-      grind
+      simp [execute]
+      apply ih
     case load x =>
+      simp [execute]
       grind
     case add =>
-      simp
+      simp [execute]
       split
       . apply ih
-      . apply ih
-      . apply ih
+      . grind
+      . grind
     all_goals
-      simp
+      simp [execute]
       split <;> grind
 
+trial compile_correct {e state}:
+  execute (compile e) state [] = [e.eval state]
+:= by
+  induction e
+  case add e1 e2 ih1 ih2 =>
+    simp [compile]
+    rw [execute_app]
+    rw [ih2]
+    rw [execute_app]
+    sorry
+  all_goals sorry
 
 theorem compile_correct_aux {e state stack}:
   execute (compile e) state stack = e.eval state :: stack
@@ -128,12 +160,15 @@ theorem compile_correct_aux {e state stack}:
   case add e1 e2 ih1 ih2 =>
     simp [compile]
     rw [execute_app]
+    rw [ih2]
     rw [execute_app]
-    rw [ih1, ih2]
-    simp [execute]
+    rw [ih1]
+    unfold execute; simp
+    unfold execute
+    simp
   all_goals
     simp [compile]
-    grind[execute_app, execute]
+    grind [execute_app, execute]
 
 
 theorem compile_correct {e state}:
@@ -216,11 +251,12 @@ def const_mul (n: Nat) (prog: List Instruction): List Instruction :=
   else if n % 2 == 0 then
     const_mul (n / 2) (prog ++ [Instruction.lshift 1])
   else
-    const_mul (n - 1) prog ++ prog ++ [Instruction.add]
-  termination_by n
-  decreasing_by
-    . grind
-    . grind
+    -- `n = n - 1 + 1`, so `n * r = (n - 1) * r + r`
+    (const_mul (n - 1) prog) ++ prog ++ [Instruction.add]
+termination_by n
+decreasing_by
+  . grind
+  . grind
 
 
 example x: const_mul 12 [Instruction.push x] = [
@@ -245,9 +281,10 @@ example x: const_mul 12 [Instruction.push x] = [
 
 
 example x: execute (const_mul 12 [Instruction.push x]) ∅ [] = [x * 12] := by
-  simp [const_mul, execute]
+  simp [const_mul]
+  simp [execute]
   simp [Nat.shiftLeft_eq]
-  omega
+  lia
 
 
 theorem const_mul_correct {n r state prog}:
@@ -312,7 +349,7 @@ theorem compile_optim_mult_correct {e m stack}:
     . rewrite [const_mul_correct ih1]
       simp
       apply Nat.mul_comm
-    . grind[execute_app, execute, const_mul_correct]
+    . grind [execute_app, execute, const_mul_correct]
   all_goals
     simp [compile_optim_mult]
-    grind[execute_app, execute, const_mul_correct]
+    grind [execute_app, execute, const_mul_correct]
